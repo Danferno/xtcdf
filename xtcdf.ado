@@ -1,5 +1,5 @@
 * Pesaran (2004/2015) CD-test for cross sectional dependence
-*! Version 1.0.0 28jul2017
+*! Version 2.0.0 30aug21
 * Contact jesse.wursten@kuleuven.be for bug reports/inquiries.
 
 * Changelog
