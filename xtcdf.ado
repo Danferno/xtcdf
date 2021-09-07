@@ -10,6 +10,7 @@ cap mata mata drop prepData()
 cap mata mata drop corrMatrix()
 cap mata mata drop reshapeWideMata()
 cap mata mata drop calcCD()
+cap mata mata drop calcCDstar()
 
 cap program drop xtcdf
 program define xtcdf, rclass
@@ -35,14 +36,18 @@ program define xtcdf, rclass
 		** Reshape data `var'
 		reshapeWide `var'
 		
-		** Calculate statistics
-		mata: calcCD(theData)
+		** Calculate CD statistics
+		mata: CD = calcCD(theData)
 		scalar `cd' = round(cd, 0.001)
 		scalar `meanObs' = round(meanObs, 0.01)
 		scalar `meanCorr' = round(meanCorr, 0.01)
 		scalar `meanAbsCorr' = round(meanAbsCorr, 0.01)
 		scalar `pvalue' = round(pvalue, 0.001)
 		scalar `notEnoughJointObs' = notEnoughJointObs
+		
+		** Calculate CD*
+		mata: CDstar = calcCDstar(theData, CD)
+		di "CD star: " scalar(cdstar)
 		
 		** Report statistics
 		if `notEnoughJointObs' == 1 local errorMessage = `"" `notEnoughJointObs' " combination of panel units ignored (insufficient joint observations)."'
@@ -95,7 +100,32 @@ end
 
 
 mata:
-	void calcCD(real matrix theData) {
+	real scalar calcCDstar(real matrix theData, real scalar CD) {
+		T = 10
+		n = 10
+		σ = 1
+		
+		// Factor loadings γ (column vector, corresponds to n eigenvalues)
+		γ = eigenvalues(theData*theData')	// maybe?
+		
+		// φ, δ
+		δ = γ/σ
+		φ = 1/n*sum(δ)
+		
+		// a
+		a = 1 - σ * φ'*γ
+		
+		// θ
+		θ = 1 - (1/n)*sum(a^2)
+		
+		// CD*
+		
+		CDstar = (CD + sqrt(T/2)*θ)/(1-θ)
+		
+		st_numscalar("cdstar", CDstar)
+		return(CDstar)
+	}
+	real scalar calcCD(real matrix theData) {
 		// 1. Define objects
 		real scalar T, N, counter, i, j; real matrix subData, demeaned; real colvector corrVector, tVector; real rowvector s
 		real scalar CD, corr_nr, meanObs, meanCorr, meanAbsCorr, pvalue
@@ -145,6 +175,8 @@ mata:
 		st_numscalar("meanAbsCorr", meanAbsCorr)
 		st_numscalar("pvalue", pvalue)
 		st_numscalar("notEnoughJointObs", notEnoughJointObs)
+		
+		return(CD)
 	}
 	
 	
